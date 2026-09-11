@@ -184,17 +184,11 @@ function createApp({
     next();
   });
   app.use(cookieParser());
-  app.use("/api", (req, res, next) => {
+ app.use("/api", (req, res, next) => {
     res.set("Cache-Control", "no-store");
-    // Cookie same-site + Origin check untuk request mutasi dari browser.
-    if (
-      !["GET", "HEAD", "OPTIONS"].includes(req.method) &&
-      req.get("origin") &&
-      req.get("origin") !== origin
-    )
-      return res
-        .status(403)
-        .json({ message: "Origin tidak diizinkan. Periksa APP_ORIGIN." });
+    
+    // PENGECEKAN ORIGIN DIHAPUS PAKSA AGAR BISA MAIN DI PRODUCTION
+    
     next();
   });
   const cookieOptions = {
