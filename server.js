@@ -630,3 +630,47 @@ if (require.main === module)
     process.exit(1);
   });
 module.exports = { createApp, shuffle, parseQuestion, grade, summary, PATH };
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  max: 2, // Batasi koneksi untuk lingkungan serverless
+  connectionTimeoutMillis: 10000,
+  idleTimeoutMillis: 30000,
+  ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : false
+});
+
+pool.on("error", (err) =>
+  console.error("Database connection:", err.code || err.name)
+);
+
+const app = createApp({
+  pool,
+  secret: process.env.JWT_SECRET,
+  origin: process.env.APP_ORIGIN || "*",
+  production: process.env.NODE_ENV === "production",
+});
+
+// Jika dijalankan secara lokal (node server.js)
+if (process.argv.includes("--init-db")) {
+  fs.readFile(PATH.schema, "utf8").then(schema => pool.query(schema)).then(() => {
+    console.log("Schema database siap.");
+    return pool.end();
+  }).catch(err => {
+    console.error(err);
+    process.exit(1);
+  });
+} else if (require.main === module) {
+  const port = Number(process.env.PORT || 3000);
+  pool.query("SELECT 1 FROM admins LIMIT 1").catch(() => {});
+  app.listen(port, () =>
+    console.log(`Bunpou Puzzle berjalan di http://localhost:${port}`)
+  );
+}
+
+// EKSPOR UTAMA UNTUK VERCEL SERVERLESS
+module.exports = app;
+module.exports.createApp = createApp;
+module.exports.shuffle = shuffle;
+module.exports.parseQuestion = parseQuestion;
+module.exports.grade = grade;
+module.exports.summary = summary;
+module.exports.PATH = PATH;
