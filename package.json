@@ -1,26 +1,31 @@
 {
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cookie-parser": "^1.4.7",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "pg": "^8.23.0"
+  },
   "name": "bunpou-puzzle",
   "version": "1.0.0",
-  "private": true,
-  "description": "Game puzzle bunpou mobile dengan Express, Neon PostgreSQL dan HTML SPA",
+  "description": "",
   "main": "server.js",
+  "devDependencies": {},
   "scripts": {
-    "start": "node server.js",
-    "dev": "node --watch server.js",
-    "db:init": "node server.js --init-db",
-    "test": "node --test tests/*.test.js"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
   },
-  "engines": { "node": ">=22" },
-  "dependencies": {
-    "bcryptjs": "^3.0.2",
-    "cookie-parser": "^1.4.7",
-    "dotenv": "^17.2.3",
-    "express": "^5.1.0",
-    "jsonwebtoken": "^9.0.2",
-    "pg": "^8.16.3"
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Yu1chiro/bunpoupuzzle-app.git"
   },
-  "devDependencies": {
-    "@electric-sql/pglite": "^0.3.14",
-    "supertest": "^7.1.4"
-  }
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Yu1chiro/bunpoupuzzle-app/issues"
+  },
+  "homepage": "https://github.com/Yu1chiro/bunpoupuzzle-app#readme"
 }
