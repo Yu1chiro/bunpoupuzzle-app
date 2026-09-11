@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#eef8ff">
+  <title>Profil · Bunpou Puzzle</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.1.18"></script>
+
+  <link rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&family=Nunito:wght@400;600;700;800;900&display=swap"
+    rel="stylesheet">
+
+  <style>
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    [hidden] {
+      display: none !important;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Nunito", "Noto Sans JP", sans-serif;
+    }
+
+    button, a {
+      touch-action: manipulation;
+    }
+
+    button:not(:disabled), summary {
+      cursor: pointer;
+    }
+
+    button:disabled {
+      opacity: .5;
+      cursor: not-allowed;
+    }
+
+    button:focus-visible,
+    a:focus-visible,
+    summary:focus-visible {
+      outline: 3px solid #0284c7;
+      outline-offset: 4px;
+    }
+
+    .jp {
+      font-family: "Noto Sans JP", sans-serif;
+      overflow-wrap: anywhere;
+    }
+  </style>
+</head>
+
+<body class="min-h-dvh bg-[#eef8ff] text-slate-700 antialiased">
+  <main id="app"
+    class="mx-auto max-w-3xl px-4 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-5">
+
+    <section class="rounded-[28px] border border-sky-200 bg-[#dcefff] p-5 sm:p-6">
+      <div class="flex items-center gap-4">
+        <span class="grid h-16 w-16 shrink-0 place-items-center rounded-3xl bg-white text-3xl text-sky-700">
+          <i class="fa-solid fa-user-astronaut" aria-hidden="true"></i>
+        </span>
+
+        <div>
+          <p class="text-sm font-bold text-sky-800">Catatan latihanmu</p>
+          <h1 class="mt-1 text-2xl font-black text-slate-800">
+            Tumbuh satu kalimat.
+          </h1>
+        </div>
+      </div>
+
+      <div id="level" class="mt-5"></div>
+    </section>
+
+    <div id="storage-error" hidden role="alert"
+      class="mt-4 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-rose-800">
+      Progres tidak dapat dibaca. Data lama belum diubah.
+      Kamu bisa memakai tombol hapus progres untuk memulai kembali.
+    </div>
+
+    <div id="profile-stats"
+      class="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4"></div>
+
+    <p class="mt-4 text-sm leading-relaxed text-slate-500">
+      Progres disimpan pada browser perangkat ini.
+    </p>
+
+    <section class="mt-7">
+      <h2 class="mb-3 text-xl font-black text-slate-800">
+        Deck yang sudah selesai
+      </h2>
+      <div id="done-decks" class="grid gap-3 sm:grid-cols-2"></div>
+    </section>
+
+    <section class="mt-7">
+      <div class="mb-3 flex items-center justify-between gap-3">
+        <h2 class="text-xl font-black text-slate-800">Riwayat latihan</h2>
+        <span id="session-count" class="text-sm font-bold text-slate-500"></span>
+      </div>
+
+      <div id="history" class="space-y-3"></div>
+    </section>
+
+    <section class="mt-8 rounded-3xl border border-rose-100 bg-white p-5">
+      <div class="flex items-start gap-3">
+        <span class="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-rose-50 text-rose-700">
+          <i class="fa-solid fa-arrow-rotate-left" aria-hidden="true"></i>
+        </span>
+
+        <div>
+          <h2 class="font-extrabold text-slate-800">Mulai lagi dari awal</h2>
+          <p class="mt-1 text-sm leading-relaxed text-slate-500">
+            Hapus EXP, riwayat latihan, dan tanda deck selesai pada browser ini.
+          </p>
+        </div>
+      </div>
+
+      <button id="open-reset" type="button"
+        class="mt-4 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 font-extrabold text-rose-700 transition hover:bg-rose-100">
+        <i class="fa-solid fa-trash-can" aria-hidden="true"></i>
+        Hapus semua progres
+      </button>
+    </section>
+  </main>
+
+  <nav id="bottom-nav"
+    aria-label="Navigasi utama"
+    class="fixed inset-x-0 bottom-0 z-30 border-t border-sky-100 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur">
+
+    <div class="mx-auto grid h-[72px] max-w-lg grid-cols-2 gap-2 px-4 py-2">
+      <a href="/"
+        class="flex flex-col items-center justify-center gap-1 rounded-2xl text-sm font-bold text-slate-500">
+        <i class="fa-solid fa-layer-group text-lg" aria-hidden="true"></i>
+        Deck
+      </a>
+
+      <a href="/profile" aria-current="page"
+        class="flex flex-col items-center justify-center gap-1 rounded-2xl bg-sky-100 text-sm font-bold text-sky-800">
+        <i class="fa-solid fa-chart-simple text-lg" aria-hidden="true"></i>
+        Profil
+      </a>
+
+      
+    </div>
+  </nav>
+
+  <div id="toast" hidden role="status" aria-live="polite"
+    class="fixed inset-x-4 top-4 z-[100] mx-auto max-w-md rounded-2xl border border-sky-200 bg-white p-4 shadow-lg">
+  </div>
+
+  <div id="reset-modal" hidden
+    role="alertdialog"
+    aria-modal="true"
+    aria-labelledby="reset-title"
+    aria-describedby="reset-description"
+    class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/35 p-4 backdrop-blur-sm">
+
+    <div class="w-full max-w-sm rounded-[28px] bg-white p-6 shadow-xl">
+      <span class="mx-auto grid h-16 w-16 place-items-center rounded-3xl bg-rose-100 text-2xl text-rose-700">
+        <i class="fa-solid fa-trash-can" aria-hidden="true"></i>
+      </span>
+
+      <h2 id="reset-title"
+        class="mt-4 text-center text-xl font-black text-slate-800">
+        Hapus semua progres?
+      </h2>
+
+      <p id="reset-description"
+        class="mt-3 text-center leading-relaxed text-slate-500">
+        EXP, level, riwayat, dan tanda deck selesai akan direset.
+        Sesi permainan lama pada browser ini juga dihentikan.
+        Tindakan ini tidak bisa dibatalkan.
+      </p>
+
+      <p id="reset-error" hidden role="alert"
+        class="mt-4 rounded-xl bg-rose-50 p-3 text-sm text-rose-800"></p>
+
+      <div class="mt-6 grid grid-cols-2 gap-3">
+        <button id="cancel-reset" type="button"
+          class="min-h-12 rounded-2xl border border-slate-200 px-4 py-3 font-bold">
+          Batal
+        </button>
+
+        <button id="confirm-reset" type="button"
+          class="min-h-12 rounded-2xl bg-rose-700 px-4 py-3 font-extrabold text-white hover:bg-rose-800">
+          Ya, hapus
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    "use strict";
+
+    const PATH = Object.freeze({
+      home: "/",
+      signin: "/signin",
+      admin: "/admin",
+      game: "/game-mode",
+      profile: "/profile",
+      api: "/api"
+    });
+
+    const STORE_KEY = "bunpou.progress.v1";
+    const $ = selector => document.querySelector(selector);
+
+    const esc = value => String(value ?? "").replace(
+      /[&<>"']/g,
+      c => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+      })[c]
+    );
+
+    const PRIMARY =
+      "inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-sky-700 px-5 py-3 font-extrabold text-white hover:bg-sky-800";
+
+    let toastTimer;
+
+    function toast(message) {
+      clearTimeout(toastTimer);
+      $("#toast").textContent = message;
+      $("#toast").hidden = false;
+
+      toastTimer = setTimeout(() => {
+        $("#toast").hidden = true;
+      }, 5000);
+    }
+
+    function readProgress() {
+      try {
+        const raw = localStorage.getItem(STORE_KEY);
+
+        if (!raw) {
+          return { version: 1, sessions: [], resetId: "initial" };
+        }
+
+        const data = JSON.parse(raw);
+
+        if (
+          data.version !== 1 ||
+          !Array.isArray(data.sessions) ||
+          data.sessions.some(session =>
+            !session ||
+            typeof session.id !== "string" ||
+            typeof session.deckId !== "string" ||
+            !Number.isFinite(session.totalXp) ||
+            !Number.isFinite(session.total) ||
+            session.total < 1 ||
+            !Number.isFinite(session.correct) ||
+            !Number.isFinite(session.totalSeconds) ||
+            !Array.isArray(session.results) ||
+            session.results.some(result =>
+              !result ||
+              !Array.isArray(result.actual) ||
+              !Array.isArray(result.expected) ||
+              !Array.isArray(result.positions)
+            )
+          )
+        ) {
+          throw new Error("Format progres tidak valid.");
+        }
+
+        return data;
+      } catch {
+        return null;
+      }
+    }
+
+    function totals(sessions) {
+      const total = sessions.reduce((n, s) => n + s.total, 0);
+      const correct = sessions.reduce((n, s) => n + s.correct, 0);
+
+      return {
+        xp: sessions.reduce((n, s) => n + s.totalXp, 0),
+        total,
+        correct,
+        accuracy: total ? Math.round(correct / total * 100) : 0,
+        done: new Set(sessions.map(s => s.deckId)).size
+      };
+    }
+
+    function metric(label, value) {
+      return `
+        <div class="rounded-2xl border border-sky-100 bg-white p-4">
+          <p class="text-sm font-bold text-slate-500">${esc(label)}</p>
+          <p class="mt-1 text-2xl font-black text-slate-800">${esc(value)}</p>
+        </div>
+      `;
+    }
+
+    function resultDetail(result, index) {
+      const status = result.timedOut
+        ? "Waktu habis"
+        : result.correct ? "Benar" : "Belum tepat";
+
+      return `
+        <details class="rounded-2xl border ${
+          result.correct ? "border-emerald-200" : "border-rose-200"
+        } bg-white p-3 sm:p-4">
+
+          <summary class="flex min-h-11 flex-wrap items-center justify-between gap-2">
+            <span class="font-extrabold">
+              Soal ${index + 1}
+              <span class="${
+                result.correct ? "text-emerald-700" : "text-rose-700"
+              }">· ${status}</span>
+            </span>
+
+            <span class="text-sm text-slate-500">
+              ${esc(result.timeSeconds)} dtk · +${esc(result.xp)} EXP
+              <i class="fa-solid fa-chevron-down ml-1" aria-hidden="true"></i>
+            </span>
+          </summary>
+
+          <div class="mt-3 space-y-4 border-t border-slate-100 pt-4">
+            <div>
+              <p class="text-sm font-bold text-slate-500">Jawabanmu</p>
+              <p class="jp mt-1 leading-loose">
+                ${esc(result.actual.join(" / ") || "Belum ada potongan")}
+              </p>
+            </div>
+
+            <div class="rounded-xl bg-emerald-50 p-3">
+              <p class="text-sm font-bold text-emerald-800">Susunan benar</p>
+              <p class="jp mt-1 leading-loose">${esc(result.expected.join(""))}</p>
+            </div>
+
+            ${result.clue ? `
+              <p class="break-words text-sm text-slate-500">
+                Clue: ${esc(result.clue)}
+              </p>
+            ` : ""}
+
+            <p class="text-sm font-bold">
+              ${esc(result.mismatches)} potongan salah posisi / belum terisi
+            </p>
+
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-sm">
+                <thead>
+                  <tr class="border-b border-slate-100 text-slate-500">
+                    <th class="p-2">Posisi</th>
+                    <th class="p-2">Jawabanmu</th>
+                    <th class="p-2">Seharusnya</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  ${result.positions.map(position => `
+                    <tr class="${position.match ? "bg-emerald-50" : "bg-rose-50"}">
+                      <td class="p-2">
+                        ${esc(position.position)}
+                        ${position.match ? "✓" : "×"}
+                      </td>
+                      <td class="jp p-2">${esc(position.actual ?? "—")}</td>
+                      <td class="jp p-2">${esc(position.expected)}</td>
+                    </tr>
+                  `).join("")}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </details>
+      `;
+    }
+
+    function summaryHTML(summary) {
+      return `
+        <div class="grid grid-cols-2 gap-3">
+          ${metric("Akurasi", summary.accuracy + "%")}
+          ${metric("EXP", "+" + summary.totalXp)}
+          ${metric("Benar", summary.correct + "/" + summary.total)}
+          ${metric("Salah", summary.incorrect)}
+        </div>
+
+        <div class="mt-4 space-y-2 rounded-2xl bg-sky-50 p-4 text-sm">
+          <p>Waktu habis: <b>${esc(summary.timedOut)}</b></p>
+          <p>Salah posisi: <b>${esc(summary.mismatches)}</b></p>
+          <p>Total waktu: <b>${esc(summary.totalSeconds)} detik</b></p>
+          <p>
+            Rata-rata:
+            <b>${(summary.totalSeconds / Math.max(1, summary.total)).toFixed(1)} detik/soal</b>
+          </p>
+          <p>Rangkaian benar terpanjang: <b>${esc(summary.bestStreak)}</b></p>
+        </div>
+
+        <h3 class="mb-3 mt-5 font-extrabold">Rincian jawaban</h3>
+
+        <div class="space-y-3">
+          ${summary.results.map(resultDetail).join("")}
+        </div>
+      `;
+    }
+
+    function renderProfile() {
+      const progress = readProgress();
+      const sessions = progress?.sessions || [];
+      const stats = totals(sessions);
+
+      $("#storage-error").hidden = progress !== null;
+
+      const level = Math.floor(stats.xp / 100) + 1;
+      const currentXp = stats.xp % 100;
+
+      $("#level").innerHTML = `
+        <div class="flex flex-wrap justify-between gap-2 text-sm font-bold">
+          <span>Level ${level}</span>
+          <span>${currentXp}/100 EXP menuju level berikutnya</span>
+        </div>
+
+        <div class="mt-2 h-3 overflow-hidden rounded-full bg-white/80"
+          role="progressbar"
+          aria-label="EXP level"
+          aria-valuemin="0"
+          aria-valuemax="100"
+          aria-valuenow="${currentXp}">
+          <div class="h-full rounded-full bg-sky-600"
+            style="width:${currentXp}%"></div>
+        </div>
+      `;
+
+      $("#profile-stats").innerHTML =
+        metric("Total EXP", stats.xp) +
+        metric("Deck selesai", stats.done) +
+        metric("Akurasi", stats.accuracy + "%") +
+        metric("Soal dijawab", stats.total);
+
+      const grouped = new Map();
+
+      for (const session of sessions) {
+        const previous = grouped.get(session.deckId);
+
+        grouped.set(session.deckId, {
+          ...session,
+          plays: (previous?.plays || 0) + 1,
+          best: Math.max(previous?.best || 0, session.accuracy)
+        });
+      }
+
+      $("#done-decks").innerHTML = grouped.size
+        ? [...grouped.values()].map(deck => `
+          <article class="rounded-2xl border border-emerald-100 bg-white p-4">
+            <div class="flex items-start justify-between gap-3">
+              <h3 class="break-words font-extrabold">${esc(deck.deckTitle)}</h3>
+              <i class="fa-solid fa-circle-check mt-1 text-emerald-600"
+                aria-label="Selesai"></i>
+            </div>
+
+            <p class="mt-2 text-sm text-slate-500">
+              ${deck.plays} kali selesai · Akurasi terbaik ${deck.best}%
+            </p>
+
+            <a href="${PATH.game}?deck=${encodeURIComponent(deck.deckId)}"
+              class="mt-2 inline-flex min-h-11 items-center gap-2 font-bold text-sky-800">
+              Main lagi
+              <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+            </a>
+          </article>
+        `).join("")
+        : `
+          <div class="rounded-2xl border border-dashed border-sky-300 p-6 text-slate-500 sm:col-span-2">
+            Belum ada deck selesai. Selesaikan satu deck untuk mendapatkan tanda selesai.
+          </div>
+        `;
+
+      $("#session-count").textContent = sessions.length + " sesi";
+
+      $("#history").innerHTML = sessions.length
+        ? [...sessions].reverse().map(session => `
+          <details class="rounded-3xl border border-sky-100 bg-white p-4">
+            <summary class="flex min-h-11 items-center justify-between gap-3">
+              <span class="min-w-0">
+                <span class="block break-words font-extrabold">
+                  ${esc(session.deckTitle)}
+                </span>
+                <span class="mt-1 block text-sm text-slate-500">
+                  ${esc(new Date(session.completedAt).toLocaleString("id-ID", {
+                    dateStyle: "medium",
+                    timeStyle: "short"
+                  }))}
+                </span>
+              </span>
+
+              <span class="shrink-0 text-right">
+                <span class="block font-extrabold text-sky-800">
+                  +${session.totalXp} EXP
+                </span>
+                <span class="text-sm text-slate-500">
+                  ${session.accuracy}%
+                  <i class="fa-solid fa-chevron-down ml-1" aria-hidden="true"></i>
+                </span>
+              </span>
+            </summary>
+
+            <div class="mt-4 border-t border-sky-100 pt-4">
+              ${summaryHTML(session)}
+            </div>
+          </details>
+        `).join("")
+        : `
+          <div class="rounded-3xl bg-white p-6 text-center">
+            <i class="fa-solid fa-seedling text-3xl text-sky-600"
+              aria-hidden="true"></i>
+            <p class="mt-3 text-slate-500">
+              Riwayat masih kosong. Yuk, mulai latihan!
+            </p>
+            <a href="${PATH.home}" class="${PRIMARY} mt-4">Pilih deck</a>
+          </div>
+        `;
+    }
+
+    let previousFocus = null;
+    let resetting = false;
+
+    function openResetModal() {
+      previousFocus = document.activeElement;
+
+      $("#reset-error").hidden = true;
+      $("#reset-modal").hidden = false;
+
+      $("#app").inert = true;
+      $("#bottom-nav").inert = true;
+
+      document.body.style.overflow = "hidden";
+      $("#cancel-reset").focus();
+    }
+
+    function closeResetModal() {
+      if (resetting) return;
+
+      $("#reset-modal").hidden = true;
+      $("#app").inert = false;
+      $("#bottom-nav").inert = false;
+
+      document.body.style.overflow = "";
+      previousFocus?.focus();
+    }
+
+    function clearGameStorage() {
+      try {
+        const keys = [];
+
+        for (let index = 0; index < sessionStorage.length; index++) {
+          const key = sessionStorage.key(index);
+
+          if (
+            key?.startsWith("bunpou.active.") ||
+            key?.startsWith("bunpou.board.")
+          ) {
+            keys.push(key);
+          }
+        }
+
+        keys.forEach(key => sessionStorage.removeItem(key));
+      } catch {}
+    }
+
+    function resetProgress() {
+      if (resetting) return;
+
+      resetting = true;
+      $("#confirm-reset").disabled = true;
+      $("#reset-error").hidden = true;
+
+      try {
+        const resetId = window.crypto?.randomUUID?.() ||
+          Date.now().toString(36) + "-" + Math.random().toString(36).slice(2);
+
+        /*
+          Satu kali write: progres kosong + penanda reset baru.
+          Tidak menggunakan localStorage.clear().
+          Data aplikasi lainnya tidak ikut terhapus.
+        */
+        localStorage.setItem(STORE_KEY, JSON.stringify({
+          version: 1,
+          sessions: [],
+          resetId
+        }));
+
+        clearGameStorage();
+      } catch {
+        resetting = false;
+        $("#confirm-reset").disabled = false;
+        $("#reset-error").textContent =
+          "Progres belum berhasil dihapus. Browser memblokir penyimpanan. Coba lagi.";
+        $("#reset-error").hidden = false;
+        return;
+      }
+
+      resetting = false;
+      $("#confirm-reset").disabled = false;
+
+      closeResetModal();
+      renderProfile();
+      toast("Progres berhasil dihapus. Yuk, mulai lagi dari awal!");
+    }
+
+    $("#open-reset").onclick = openResetModal;
+    $("#cancel-reset").onclick = closeResetModal;
+    $("#confirm-reset").onclick = resetProgress;
+
+    $("#reset-modal").addEventListener("click", event => {
+      if (event.target === $("#reset-modal")) closeResetModal();
+    });
+
+    $("#reset-modal").addEventListener("keydown", event => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeResetModal();
+      }
+
+      if (event.key !== "Tab") return;
+
+      const first = $("#cancel-reset");
+      const last = $("#confirm-reset");
+
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    });
+
+    window.addEventListener("storage", event => {
+      if (event.key === STORE_KEY || event.key === null) {
+        renderProfile();
+      }
+    });
+
+    window.addEventListener("pageshow", renderProfile);
+
+    renderProfile();
+  </script>
+</body>
+</html>

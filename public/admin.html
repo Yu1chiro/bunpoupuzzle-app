@@ -1,0 +1,636 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1,viewport-fit=cover"
+    />
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2032%2032%22%3E%3Crect%20width%3D%2232%22%20height%3D%2232%22%20rx%3D%229%22%20fill%3D%22%23dcefff%22%2F%3E%3Cpath%20d%3D%22M7%207h7a3%203%200%201%201%206%200h5v7a3%203%200%201%200%200%206v5h-7a3%203%200%201%200-6%200H7v-7a3%203%200%201%200%200-6Z%22%20fill%3D%22%230369a1%22%2F%3E%3C%2Fsvg%3E"
+    />
+    <meta name="theme-color" content="#eef8ff" />
+    <meta
+      name="description"
+      content="Susun potongan kalimat Jepang, kumpulkan EXP, dan latih bunpou setiap hari."
+    />
+    <title>Kelola deck · Bunpou Puzzle</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.1.18"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&family=Nunito:wght@400;500;600;700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        font-family: Nunito, "Noto Sans JP", sans-serif;
+      }
+      button,
+      a,
+      input,
+      textarea {
+        -webkit-tap-highlight-color: transparent;
+      }
+      button,
+      a {
+        touch-action: manipulation;
+      }
+      button:not(:disabled),
+      summary {
+        cursor: pointer;
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      button:focus-visible,
+      a:focus-visible,
+      summary:focus-visible {
+        outline: 3px solid #0284c7;
+        outline-offset: 4px;
+      }
+      .jp {
+        font-family: "Noto Sans JP", sans-serif;
+        overflow-wrap: anywhere;
+      }
+      .tile {
+        touch-action: none;
+        user-select: none;
+      }
+      .sortable-ghost {
+        opacity: 0.3;
+        background: #bae6fd;
+      }
+      .sortable-chosen {
+        border-color: #0284c7;
+      }
+      .sortable-drag {
+        box-shadow: 0 10px 30px #07598525;
+      }
+      .pop {
+        animation: pop 0.2s ease-out;
+      }
+      @keyframes pop {
+        from {
+          opacity: 0;
+          transform: translateY(6px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation: none !important;
+          transition: none !important;
+          scroll-behavior: auto !important;
+        }
+      }
+    </style>
+  </head>
+  <body
+    class="min-h-screen bg-[#eef8ff] text-slate-700 antialiased selection:bg-sky-200"
+  >
+    <header class="border-b border-sky-100 bg-white/80">
+      <div
+        class="mx-auto flex max-w-5xl items-center justify-between px-5 py-4"
+      >
+        <a href="/" class="flex items-center gap-3 font-black text-slate-800"
+          ><span
+            class="grid h-10 w-10 place-items-center rounded-2xl bg-sky-200 text-lg text-sky-800"
+            ><i class="fa-solid fa-puzzle-piece" aria-hidden="true"></i></span
+          ><span
+            >Bunpou<span class="ml-1 font-semibold text-sky-700"
+              >Puzzle</span
+            ></span
+          ></a
+        ><span
+          class="rounded-full bg-sky-50 px-3 py-1 text-sm font-bold text-sky-800"
+          >ぶんぽう</span
+        >
+      </div>
+    </header>
+    <main id="main" class="mx-auto max-w-5xl px-4 pb-32 pt-6 sm:px-6">
+      <div class="mb-6 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p id="greeting" class="text-sm font-bold text-sky-800">
+            Ruang pengajar
+          </p>
+          <h1 class="mt-1 text-2xl font-black text-slate-800">Kelola deck</h1>
+        </div>
+        <button
+          id="logout"
+          class="min-h-11 rounded-2xl border border-sky-200 bg-white px-4 py-2 text-sm font-bold"
+        >
+          Keluar
+          <i
+            class="fa-solid fa-arrow-right-from-bracket ml-2"
+            aria-hidden="true"
+          ></i>
+        </button>
+      </div>
+      <div id="admin-content"><p role="status">Memuat akun…</p></div>
+    </main>
+    <nav
+      aria-label="Navigasi utama"
+      class="fixed inset-x-0 bottom-0 z-30 border-t border-sky-100 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur"
+    >
+      <div class="mx-auto grid max-w-lg grid-cols-3 gap-2 px-4 py-2">
+        <a
+          href="/"
+          class="flex min-h-14 flex-col items-center justify-center gap-1 rounded-2xl text-sm font-bold text-slate-500 hover:bg-sky-50"
+          ><i class="fa-solid fa-layer-group text-lg" aria-hidden="true"></i
+          >Deck</a
+        ><a
+          href="/profile"
+          class="flex min-h-14 flex-col items-center justify-center gap-1 rounded-2xl text-sm font-bold text-slate-500 hover:bg-sky-50"
+          ><i class="fa-solid fa-chart-simple text-lg" aria-hidden="true"></i
+          >Profil</a
+        ><a
+          href="/admin"
+          aria-current="page"
+          class="flex min-h-14 flex-col items-center justify-center gap-1 rounded-2xl text-sm font-bold bg-sky-100 text-sky-800"
+          ><i class="fa-solid fa-sliders text-lg" aria-hidden="true"></i
+          >Admin</a
+        >
+      </div>
+    </nav>
+    <div
+      id="toast"
+      role="status"
+      aria-live="polite"
+      class="fixed inset-x-4 top-4 z-[70] mx-auto hidden max-w-md rounded-2xl border border-sky-200 bg-white px-5 py-4 shadow-lg"
+    ></div>
+    <div
+      id="modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-title"
+      class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/30 p-4 backdrop-blur-sm"
+    >
+      <div
+        id="modal-panel"
+        class="max-h-[85dvh] w-full max-w-lg overflow-y-auto rounded-3xl bg-white p-6 shadow-xl"
+      >
+        <h2 id="modal-title" class="text-xl font-extrabold text-slate-800"></h2>
+        <div id="modal-content" class="mt-4"></div>
+        <div id="modal-actions" class="mt-6 flex justify-end gap-3"></div>
+      </div>
+    </div>
+    <script>
+      "use strict";
+      const PATH = Object.freeze({
+        home: "/",
+        signin: "/signin",
+        admin: "/admin",
+        game: "/game-mode",
+        profile: "/profile",
+        api: "/api",
+      });
+      const $ = (selector) => document.querySelector(selector);
+      const esc = (value) =>
+        String(value ?? "").replace(
+          /[&<>"']/g,
+          (c) =>
+            ({
+              "&": "&amp;",
+              "<": "&lt;",
+              ">": "&gt;",
+              '"': "&quot;",
+              "'": "&#39;",
+            })[c],
+        );
+      const PRIMARY =
+        "inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-sky-700 px-5 py-3 font-bold text-white transition hover:bg-sky-800 disabled:opacity-50";
+      const SECONDARY =
+        "inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-sky-200 bg-white px-4 py-2 font-bold text-sky-800 hover:bg-sky-50";
+      const INPUT =
+        "mt-2 w-full rounded-2xl border border-sky-200 bg-sky-50/50 px-4 py-3 text-base outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100";
+      let toastTimer;
+      function toast(message) {
+        clearTimeout(toastTimer);
+        $("#toast").textContent = message;
+        $("#toast").classList.remove("hidden");
+        toastTimer = setTimeout(
+          () => $("#toast").classList.add("hidden"),
+          6000,
+        );
+      }
+      async function api(url, options = {}) {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 18000);
+        try {
+          const response = await fetch(PATH.api + url, {
+            credentials: "same-origin",
+            ...options,
+            headers: { "Content-Type": "application/json", ...options.headers },
+            signal: controller.signal,
+          });
+          const data = await response
+            .json()
+            .catch(() => ({ message: "Respons server tidak valid." }));
+          if (!response.ok) {
+            const err = new Error(data.message || "Permintaan gagal.");
+            err.status = response.status;
+            throw err;
+          }
+          return data;
+        } catch (err) {
+          if (err.name === "AbortError")
+            throw new Error(
+              "Koneksi lambat. Coba lagi; jawaban yang sama tidak dihitung dua kali.",
+            );
+          throw err;
+        } finally {
+          clearTimeout(timeout);
+        }
+      }
+      function post(url, data, options = {}) {
+        return api(url, {
+          ...options,
+          method: "POST",
+          body: JSON.stringify(data),
+        });
+      }
+      let lastFocus;
+      function showModal(title, content, buttons) {
+        lastFocus = document.activeElement;
+        $("#modal-title").textContent = title;
+        $("#modal-content").innerHTML = content;
+        $("#modal-actions").replaceChildren(
+          ...buttons.map(
+            ({ label, action, primary = false, danger = false }) => {
+              const b = document.createElement("button");
+              b.type = "button";
+              b.textContent = label;
+              b.className = danger
+                ? "min-h-11 rounded-2xl bg-rose-700 px-4 py-2 font-bold text-white"
+                : primary
+                  ? PRIMARY
+                  : SECONDARY;
+              b.addEventListener("click", action);
+              return b;
+            },
+          ),
+        );
+        $("#modal").classList.remove("hidden");
+        $("#modal").classList.add("flex");
+        document.body.style.overflow = "hidden";
+        (
+          $("#modal-content").querySelector("input,textarea,button") ||
+          $("#modal-actions button")
+        ).focus();
+      }
+      function closeModal() {
+        $("#modal").classList.add("hidden");
+        $("#modal").classList.remove("flex");
+        document.body.style.overflow = "";
+        lastFocus?.focus();
+      }
+      function confirmAction(title, message, action) {
+        showModal(title, `<p class="leading-relaxed">${esc(message)}</p>`, [
+          { label: "Batal", action: closeModal },
+          {
+            label: "Hapus",
+            danger: true,
+            action: async () => {
+              closeModal();
+              await action();
+            },
+          },
+        ]);
+      }
+      $("#modal").addEventListener("keydown", (e) => {
+        if (e.key === "Escape") closeModal();
+        if (e.key === "Tab") {
+          const focusable = [
+            ...$("#modal").querySelectorAll(
+              'button:not(:disabled),input,textarea,a[href],[tabindex="0"]',
+            ),
+          ].filter((el) => el.getClientRects().length);
+          const first = focusable[0],
+            last = focusable.at(-1);
+          if (e.shiftKey && document.activeElement === first) {
+            e.preventDefault();
+            last.focus();
+          } else if (!e.shiftKey && document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+          }
+        }
+      });
+      const STORE_KEY = "bunpou.progress.v1";
+      function readProgress() {
+        try {
+          const raw = localStorage.getItem(STORE_KEY);
+          if (!raw) return { version: 1, sessions: [] };
+          const data = JSON.parse(raw);
+          if (
+            data.version !== 1 ||
+            !Array.isArray(data.sessions) ||
+            data.sessions.some(
+              (s) =>
+                !s ||
+                typeof s.id !== "string" ||
+                typeof s.deckId !== "string" ||
+                !Array.isArray(s.results) ||
+                !Number.isFinite(s.totalXp) ||
+                !Number.isFinite(s.total) ||
+                s.total < 1 ||
+                !Number.isFinite(s.correct) ||
+                !Number.isFinite(s.totalSeconds) ||
+                !Number.isFinite(s.mismatches) ||
+                s.results.some(
+                  (r) =>
+                    !r ||
+                    !Array.isArray(r.positions) ||
+                    !Array.isArray(r.actual) ||
+                    !Array.isArray(r.expected),
+                ),
+            )
+          )
+            throw new Error();
+          return data;
+        } catch (err) {
+          toast("Progres browser tidak dapat dibaca. Data lama tidak ditimpa.");
+          return null;
+        }
+      }
+      function saveSummary(s) {
+        const progress = readProgress();
+        if (!progress) return false;
+        if (progress.sessions.some((old) => old.id === s.id)) return true;
+        try {
+          progress.sessions.push(s);
+          localStorage.setItem(STORE_KEY, JSON.stringify(progress));
+          return true;
+        } catch (err) {
+          toast(
+            "Penyimpanan browser penuh atau diblokir. Hasil belum tersimpan; kosongkan ruang lalu coba lagi.",
+          );
+          return false;
+        }
+      }
+      function totals(sessions) {
+        const total = sessions.reduce((n, s) => n + s.total, 0),
+          correct = sessions.reduce((n, s) => n + s.correct, 0);
+        return {
+          xp: sessions.reduce((n, s) => n + s.totalXp, 0),
+          total,
+          correct,
+          accuracy: total ? Math.round((correct / total) * 100) : 0,
+          done: new Set(sessions.map((s) => s.deckId)).size,
+        };
+      }
+      function metric(label, value, icon = "star", color = "sky") {
+        return `<div class="rounded-2xl border border-sky-100 bg-white p-4"><span class="text-sm font-bold text-slate-500"><i class="fa-solid fa-${icon} mr-1 text-${color}-600" aria-hidden="true"></i> ${esc(label)}</span><p class="mt-1 text-2xl font-black text-slate-800">${esc(value)}</p></div>`;
+      }
+      function resultDetail(r, index) {
+        const status = r.timedOut
+          ? "Waktu habis"
+          : r.correct
+            ? "Benar"
+            : "Belum tepat";
+        return `<details class="rounded-2xl border ${r.correct ? "border-emerald-200" : "border-rose-200"} bg-white p-4"><summary class="flex min-h-11 flex-wrap items-center justify-between gap-2 font-bold"><span>Soal ${index + 1} <span class="ml-2 ${r.correct ? "text-emerald-800" : "text-rose-800"}">${status}</span></span><span class="text-sm text-slate-500">${esc(r.timeSeconds)} dtk · +${esc(r.xp)} EXP <i class="fa-solid fa-chevron-down ml-2" aria-hidden="true"></i></span></summary><div class="mt-3 space-y-3 border-t border-slate-100 pt-4"><div><p class="text-sm font-bold text-slate-500">Jawabanmu</p><p class="jp mt-1 leading-loose">${esc(r.actual.join(" / ") || "Belum ada potongan")}</p></div><div class="rounded-xl bg-emerald-50 p-3"><p class="text-sm font-bold text-emerald-800">Susunan benar</p><p class="jp mt-1 leading-loose text-slate-800">${esc(r.expected.join(""))}</p></div>${r.clue ? `<p class="text-sm text-slate-500">Clue: ${esc(r.clue)}</p>` : ""}<p class="text-sm font-bold">${esc(r.mismatches)} potongan salah posisi / belum terisi</p><div class="overflow-x-auto"><table class="w-full text-left text-sm"><thead><tr class="border-b border-slate-100 text-slate-500"><th class="p-2">Posisi</th><th class="p-2">Jawabanmu</th><th class="p-2">Seharusnya</th></tr></thead><tbody>${r.positions.map((p) => `<tr class="${p.match ? "bg-emerald-50/50" : "bg-rose-50"}"><td class="p-2">${esc(p.position)} <span aria-label="${p.match ? "tepat" : "salah"}">${p.match ? "✓" : "×"}</span></td><td class="jp p-2">${esc(p.actual ?? "—")}</td><td class="jp p-2">${esc(p.expected)}</td></tr>`).join("")}</tbody></table></div></div></details>`;
+      }
+      function summaryHTML(s) {
+        return `<div class="grid grid-cols-2 gap-3 sm:grid-cols-4">${metric("Akurasi", s.accuracy + "%", "bullseye")}${metric("EXP", "+" + s.totalXp, "star")}${metric("Benar", s.correct + "/" + s.total, "check", "emerald")}${metric("Salah", s.incorrect, "xmark", "rose")}</div><div class="mt-4 flex flex-wrap gap-x-5 gap-y-2 rounded-2xl bg-white p-4 text-sm"><span>Waktu habis: <b>${esc(s.timedOut)}</b></span><span>Salah posisi: <b>${esc(s.mismatches)}</b></span><span>Total waktu menjawab: <b>${esc(s.totalSeconds)} dtk</b></span><span>Rata-rata: <b>${(s.totalSeconds / Math.max(1, s.total)).toFixed(1)} dtk/soal</b></span><span>Rangkaian benar terpanjang: <b>${esc(s.bestStreak)}</b></span></div><h3 class="mb-3 mt-6 text-lg font-extrabold">Lihat kembali jawabanmu</h3><div class="space-y-3">${s.results.map(resultDetail).join("")}</div>`;
+      }
+
+      let decks = [],
+        selected = null,
+        questions = [],
+        busy = false;
+      async function guard(work) {
+        if (busy) return;
+        busy = true;
+        try {
+          await work();
+        } catch (err) {
+          if (err.status === 401) {
+            location.replace(PATH.signin);
+            return;
+          }
+          toast(err.message);
+        } finally {
+          busy = false;
+        }
+      }
+      async function load() {
+        const data = await api("/admin/decks");
+        decks = data.decks;
+        renderList();
+      }
+      function renderList() {
+        selected = null;
+        $("#admin-content").innerHTML =
+          `<div class="mb-5 flex items-center justify-between"><p class="text-slate-500">${decks.length} deck milikmu</p><button id="new-deck" class="${PRIMARY}"><i class="fa-solid fa-plus" aria-hidden="true"></i> Deck baru</button></div><div class="grid gap-4 sm:grid-cols-2">${decks.length ? decks.map((d) => `<article class="rounded-3xl border border-sky-100 bg-white p-5"><span class="text-sm font-bold text-sky-800">${d.question_count} soal · ${d.seconds_per_question} detik/soal</span><h2 class="mt-2 break-words text-xl font-extrabold">${esc(d.title)}</h2><p class="mt-1 break-words text-slate-500">${esc(d.description)}</p><div class="mt-5 flex flex-wrap gap-2"><button data-open="${d.id}" class="${PRIMARY}">Kelola soal</button><button data-edit="${d.id}" class="${SECONDARY}" aria-label="Edit ${esc(d.title)}"><i class="fa-solid fa-pen" aria-hidden="true"></i></button><button data-delete="${d.id}" class="${SECONDARY} text-rose-700" aria-label="Hapus ${esc(d.title)}"><i class="fa-solid fa-trash-can" aria-hidden="true"></i></button></div></article>`).join("") : '<div class="rounded-3xl border border-dashed border-sky-300 p-8 text-center sm:col-span-2"><h2 class="font-extrabold">Buat deck pertamamu</h2><p class="mt-2 text-slate-500">Misalnya: Partikel dasar, Kegiatan sehari-hari, atau Bunpou N3.</p></div>'}</div>`;
+        $("#new-deck").onclick = () => deckModal();
+        $("#admin-content")
+          .querySelectorAll("[data-open]")
+          .forEach(
+            (b) => (b.onclick = () => guard(() => openDeck(b.dataset.open))),
+          );
+        $("#admin-content")
+          .querySelectorAll("[data-edit]")
+          .forEach(
+            (b) =>
+              (b.onclick = () =>
+                deckModal(decks.find((d) => d.id === b.dataset.edit))),
+          );
+        $("#admin-content")
+          .querySelectorAll("[data-delete]")
+          .forEach(
+            (b) =>
+              (b.onclick = () =>
+                confirmAction(
+                  "Hapus deck?",
+                  "Semua soal dalam deck ini ikut dihapus.",
+                  () =>
+                    guard(async () => {
+                      await api("/admin/decks/" + b.dataset.delete, {
+                        method: "DELETE",
+                      });
+                      await load();
+                      toast("Deck dihapus.");
+                    }),
+                )),
+          );
+      }
+      function deckModal(d = null) {
+        showModal(
+          d ? "Edit deck" : "Deck baru",
+          `<form id="deck-form" class="space-y-4"><label class="block font-bold">Nama deck<input id="deck-title" class="${INPUT}" required maxlength="100" value="${esc(d?.title || "")}" placeholder="Partikel dasar"></label><label class="block font-bold">Deskripsi <span class="font-normal text-slate-500">(opsional)</span><textarea id="deck-desc" class="${INPUT}" maxlength="300" rows="2">${esc(d?.description || "")}</textarea></label><label class="block font-bold">Waktu per soal (detik)<input id="deck-time" class="${INPUT}" type="number" min="5" max="600" step="1" required value="${d?.seconds_per_question || 60}"></label><p id="deck-error" role="alert" class="text-sm text-rose-800"></p><button id="save-deck" class="${PRIMARY} w-full">Simpan deck</button></form>`,
+          [{ label: "Batal", action: closeModal }],
+        );
+        $("#deck-form").onsubmit = async (e) => {
+          e.preventDefault();
+          $("#save-deck").disabled = true;
+          try {
+            await api("/admin/decks" + (d ? "/" + d.id : ""), {
+              method: d ? "PUT" : "POST",
+              body: JSON.stringify({
+                title: $("#deck-title").value,
+                description: $("#deck-desc").value,
+                secondsPerQuestion: Number($("#deck-time").value),
+              }),
+            });
+            closeModal();
+            await load();
+            toast("Deck tersimpan.");
+          } catch (err) {
+            if ($("#deck-error")) $("#deck-error").textContent = err.message;
+            else toast(err.message);
+          } finally {
+            if ($("#save-deck")) $("#save-deck").disabled = false;
+          }
+        };
+      }
+      async function openDeck(deckId) {
+        const data = await api("/admin/decks/" + deckId + "/questions");
+        selected = data.deck;
+        questions = data.questions;
+        renderEditor();
+      }
+      function renderEditor() {
+        $("#admin-content").innerHTML =
+          `<button id="back-decks" class="mb-4 min-h-11 font-bold text-sky-800"><i class="fa-solid fa-arrow-left mr-2" aria-hidden="true"></i> Semua deck</button><section class="rounded-3xl border border-sky-200 bg-sky-100/70 p-5"><h2 class="break-words text-xl font-black">${esc(selected.title)}</h2><p class="mt-1 text-sm">${questions.length}/200 soal · ${selected.seconds_per_question} detik per soal</p><p class="mt-3 leading-relaxed">Tulis kalimat dalam <b>urutan yang benar</b>. Pisahkan setiap potongan dengan <b>・</b></p><p class="jp mt-2 rounded-xl bg-white p-3">明日・学校・へ・行きます。</p><p class="mt-2 text-sm text-slate-600">Server akan mengacak potongannya. Tanda baca tetap menempel pada kata.</p></section><form id="batch-form" class="mt-6"><div class="mb-3 flex items-center justify-between gap-2"><h3 class="text-lg font-extrabold">Tambah soal</h3><button type="button" id="add-row" class="${SECONDARY}"><i class="fa-solid fa-plus" aria-hidden="true"></i> Baris soal</button></div><div id="repeaters" class="space-y-4"></div><p id="batch-error" role="alert" class="mt-3 text-rose-800"></p><button id="save-batch" class="${PRIMARY} mt-4 w-full sm:w-auto">Simpan semua soal baru</button></form><div class="mb-3 mt-8 flex items-center justify-between"><h3 class="text-lg font-extrabold">Daftar soal (${questions.length})</h3></div><div class="space-y-3">${questions.length ? questions.map((q, i) => `<article class="rounded-2xl border border-sky-100 bg-white p-4"><div class="flex items-start justify-between gap-3"><div class="min-w-0"><span class="text-sm font-bold text-sky-700">Soal ${i + 1}</span><p class="jp mt-2 leading-loose">${esc(q.question)}</p>${q.clue ? `<p class="mt-1 break-words text-sm text-slate-500">Clue: ${esc(q.clue)}</p>` : ""}</div><div class="flex shrink-0 gap-1"><button type="button" data-edit-question="${q.id}" class="min-h-11 min-w-11 rounded-xl bg-sky-50 text-sky-800" aria-label="Edit soal ${i + 1}"><i class="fa-solid fa-pen" aria-hidden="true"></i></button><button type="button" data-delete-question="${q.id}" class="min-h-11 min-w-11 rounded-xl bg-rose-50 text-rose-800" aria-label="Hapus soal ${i + 1}"><i class="fa-solid fa-trash-can" aria-hidden="true"></i></button></div></div></article>`).join("") : '<p class="rounded-2xl bg-white p-5 text-slate-500">Belum ada soal. Tambahkan lewat form di atas.</p>'}</div>`;
+        $("#back-decks").onclick = () => guard(load);
+        $("#add-row").onclick = () => addRow();
+        addRow();
+        $("#batch-form").onsubmit = async (e) => {
+          e.preventDefault();
+          $("#save-batch").disabled = true;
+          $("#batch-error").textContent = "";
+          const qs = [...$("#repeaters").children].map((row) => ({
+            question: row.querySelector('[name="question"]').value,
+            clue: row.querySelector('[name="clue"]').value,
+          }));
+          try {
+            await post("/admin/decks/" + selected.id + "/questions", {
+              questions: qs,
+            });
+            await openDeck(selected.id);
+            toast(qs.length + " soal tersimpan.");
+          } catch (err) {
+            $("#batch-error").textContent = err.message;
+          } finally {
+            if ($("#save-batch")) $("#save-batch").disabled = false;
+          }
+        };
+        $("#admin-content")
+          .querySelectorAll("[data-edit-question]")
+          .forEach(
+            (b) =>
+              (b.onclick = () =>
+                questionModal(
+                  questions.find((q) => q.id === b.dataset.editQuestion),
+                )),
+          );
+        $("#admin-content")
+          .querySelectorAll("[data-delete-question]")
+          .forEach(
+            (b) =>
+              (b.onclick = () =>
+                confirmAction(
+                  "Hapus soal?",
+                  "Soal ini akan dihapus dari deck.",
+                  () =>
+                    guard(async () => {
+                      await api(
+                        "/admin/decks/" +
+                          selected.id +
+                          "/questions/" +
+                          b.dataset.deleteQuestion,
+                        { method: "DELETE" },
+                      );
+                      await openDeck(selected.id);
+                      toast("Soal dihapus.");
+                    }),
+                )),
+          );
+      }
+      function addRow() {
+        if ($("#repeaters").children.length >= 50) {
+          toast("Maksimal 50 soal dalam satu kali simpan.");
+          return;
+        }
+        const row = document.createElement("div");
+        row.className =
+          "space-y-3 rounded-2xl border border-sky-100 bg-white p-4";
+        row.innerHTML = `<div class="flex items-center justify-between"><span class="row-number text-sm font-bold text-sky-800"></span><button type="button" class="remove-row min-h-11 min-w-11 rounded-xl text-rose-700" aria-label="Hapus baris soal"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button></div><label class="block font-bold">Question<textarea name="question" class="${INPUT} jp" required maxlength="1000" rows="2" placeholder="明日・学校・へ・行きます。"></textarea></label><label class="block font-bold">Clue <span class="font-normal text-slate-500">(opsional)</span><input name="clue" class="${INPUT}" maxlength="500" placeholder="Besok saya pergi ke sekolah."></label>`;
+        $("#repeaters").append(row);
+        row.querySelector(".remove-row").onclick = () => {
+          if ($("#repeaters").children.length === 1) {
+            toast("Sisakan minimal satu baris soal.");
+            return;
+          }
+          row.remove();
+          numberRows();
+        };
+        numberRows();
+      }
+      function numberRows() {
+        $("#repeaters")
+          .querySelectorAll(".row-number")
+          .forEach((el, i) => (el.textContent = "Soal baru " + (i + 1)));
+      }
+      function questionModal(q) {
+        showModal(
+          "Edit soal",
+          `<form id="question-form" class="space-y-4"><label class="block font-bold">Question<textarea id="q-text" class="${INPUT} jp" rows="3" maxlength="1000" required>${esc(q.question)}</textarea></label><label class="block font-bold">Clue (opsional)<textarea id="q-clue" class="${INPUT}" maxlength="500">${esc(q.clue)}</textarea></label><p id="q-error" role="alert" class="text-sm text-rose-800"></p><button id="q-save" class="${PRIMARY} w-full">Simpan perubahan</button></form>`,
+          [{ label: "Batal", action: closeModal }],
+        );
+        $("#question-form").onsubmit = async (e) => {
+          e.preventDefault();
+          $("#q-save").disabled = true;
+          try {
+            await api("/admin/decks/" + selected.id + "/questions/" + q.id, {
+              method: "PUT",
+              body: JSON.stringify({
+                question: $("#q-text").value,
+                clue: $("#q-clue").value,
+              }),
+            });
+            closeModal();
+            await openDeck(selected.id);
+            toast("Soal diperbarui.");
+          } catch (err) {
+            if ($("#q-error")) $("#q-error").textContent = err.message;
+            else toast(err.message);
+          } finally {
+            if ($("#q-save")) $("#q-save").disabled = false;
+          }
+        };
+      }
+      $("#logout").onclick = () =>
+        guard(async () => {
+          await post("/auth/logout", {});
+          location.replace(PATH.signin);
+        });
+      (async () => {
+        try {
+          const { admin } = await api("/auth/me");
+          $("#greeting").textContent = "Halo, " + admin.username;
+          await load();
+        } catch (err) {
+          if (err.status === 401) location.replace(PATH.signin);
+          else {
+            $("#admin-content").innerHTML =
+              `<p class="rounded-2xl bg-white p-5">${esc(err.message)} <a href="/admin" class="font-bold text-sky-800">Muat ulang</a></p>`;
+          }
+        }
+      })();
+    </script>
+  </body>
+</html>

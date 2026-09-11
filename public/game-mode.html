@@ -1,0 +1,1446 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#eef8ff">
+  <title>Bermain · Bunpou Puzzle</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.1.18"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
+
+  <link rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&family=Nunito:wght@400;600;700;800;900&display=swap"
+    rel="stylesheet">
+
+  <style>
+    :root {
+      color-scheme: light;
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    [hidden] {
+      display: none !important;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Nunito", "Noto Sans JP", sans-serif;
+    }
+
+    button, a {
+      touch-action: manipulation;
+    }
+
+    button:not(:disabled), summary {
+      cursor: pointer;
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: .5;
+    }
+
+    button:focus-visible,
+    a:focus-visible,
+    summary:focus-visible {
+      outline: 3px solid #0284c7;
+      outline-offset: 4px;
+    }
+
+    .jp {
+      font-family: "Noto Sans JP", sans-serif;
+      overflow-wrap: anywhere;
+    }
+
+    .app-main {
+      padding-bottom: calc(11rem + var(--safe-bottom));
+    }
+
+    /*
+      Urutan visual sama dengan urutan DOM:
+      kiri ke kanan, kemudian baris berikutnya.
+      Jangan memakai grid-auto-flow: dense atau CSS order.
+    */
+    .puzzle-board {
+      display: flex;
+      flex-flow: row wrap;
+      justify-content: flex-start;
+      align-content: flex-start;
+      align-items: flex-start;
+      direction: ltr;
+      gap: 10px 8px;
+      width: 100%;
+      min-width: 0;
+      padding: 12px;
+      border-radius: 22px;
+      position: relative;
+      touch-action: pan-y;
+    }
+
+    .answer-board {
+      min-height: 138px;
+      border: 2px dashed #9ed4ef;
+      background-color: #f2faff;
+      background-image:
+        radial-gradient(#c8e6f5 1px, transparent 1px);
+      background-size: 14px 14px;
+    }
+
+    .bank-board {
+      min-height: 100px;
+      border: 1px solid #e2eaf2;
+      background: #f8fafc;
+    }
+
+    .puzzle-board:empty::before {
+      content: attr(data-placeholder);
+      position: absolute;
+      inset: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      color: #64748b;
+      font-size: 14px;
+      line-height: 1.6;
+      pointer-events: none;
+    }
+
+    .tile {
+      --tile-bg: #dff1ff;
+      --tile-border: #9dcae5;
+      --tile-text: #214e70;
+
+      flex: 0 0 auto;
+      display: inline-flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 7px;
+
+      width: max-content;
+      min-width: 52px;
+      max-width: 100%;
+      min-height: 50px;
+
+      margin: 0;
+      padding: 10px 12px;
+      border: 1px solid var(--tile-border);
+      border-bottom: 4px solid var(--tile-border);
+      border-radius: 15px;
+
+      color: var(--tile-text);
+      background: var(--tile-bg);
+      box-shadow: 0 2px 0 rgb(15 23 42 / 3%);
+
+      font-family: "Noto Sans JP", sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+      line-height: 1.6;
+      text-align: left;
+
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      touch-action: none;
+
+      transition:
+        background-color .15s ease,
+        box-shadow .15s ease,
+        border-color .15s ease;
+    }
+
+    .tile-text {
+      min-width: 0;
+      white-space: normal;
+      overflow-wrap: anywhere;
+    }
+
+    .tile-number {
+      display: inline-flex;
+      flex: 0 0 19px;
+      align-items: center;
+      justify-content: center;
+      width: 19px;
+      height: 19px;
+      border-radius: 6px;
+      background: rgb(255 255 255 / 65%);
+      font-family: "Nunito", sans-serif;
+      font-size: 12px;
+      font-weight: 900;
+      line-height: 1;
+    }
+
+    .bank-board .tile-number {
+      color: transparent;
+      position: relative;
+    }
+
+    .bank-board .tile-number::after {
+      content: "•";
+      position: absolute;
+      color: var(--tile-text);
+      opacity: .55;
+      font-size: 17px;
+    }
+
+    .tile:active:not(.sortable-chosen) {
+      border-bottom-width: 2px;
+      padding-bottom: 12px;
+    }
+
+    .sortable-ghost {
+      opacity: .25;
+      border-style: dashed;
+      box-shadow: none;
+    }
+
+    .sortable-chosen {
+      box-shadow: 0 0 0 3px rgb(14 165 233 / 15%);
+    }
+
+    .sortable-drag {
+      opacity: .98 !important;
+      box-shadow: 0 14px 28px rgb(30 64 100 / 20%);
+      z-index: 100 !important;
+    }
+
+    .action-dock {
+      position: fixed;
+      z-index: 35;
+      left: 0;
+      right: 0;
+      bottom: calc(72px + var(--safe-bottom));
+      pointer-events: none;
+    }
+
+    .action-dock > div {
+      pointer-events: auto;
+    }
+
+    .bottom-nav {
+      height: calc(72px + var(--safe-bottom));
+      padding-bottom: var(--safe-bottom);
+    }
+
+    .pop {
+      animation: pop .2s ease-out;
+    }
+
+    @keyframes pop {
+      from {
+        opacity: 0;
+        transform: translateY(7px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (min-width: 640px) {
+      .tile {
+        font-size: 18px;
+        min-height: 54px;
+        padding: 11px 15px;
+      }
+
+      .tile:active:not(.sortable-chosen) {
+        padding-bottom: 13px;
+      }
+
+      .puzzle-board {
+        gap: 12px 10px;
+        padding: 16px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation: none !important;
+        transition: none !important;
+        scroll-behavior: auto !important;
+      }
+    }
+  </style>
+</head>
+
+<body class="min-h-dvh bg-[#eef8ff] text-slate-700 antialiased">
+  <main class="app-main mx-auto max-w-2xl px-3 pt-4 sm:px-5">
+    <div id="game">
+      <div class="rounded-3xl border border-sky-100 bg-white p-8 text-center">
+        <i class="fa-solid fa-puzzle-piece text-3xl text-sky-600"
+          aria-hidden="true"></i>
+        <p class="mt-3" role="status">Menyiapkan puzzle…</p>
+      </div>
+    </div>
+  </main>
+
+  <nav class="bottom-nav fixed inset-x-0 bottom-0 z-40 border-t border-sky-100 bg-white/95 backdrop-blur"
+    aria-label="Navigasi utama">
+    <div class="mx-auto grid h-[72px] max-w-lg grid-cols-2 gap-2 px-4 py-2">
+      <a href="/"
+        class="flex flex-col items-center justify-center gap-1 rounded-2xl bg-sky-100 text-sm font-bold text-sky-800">
+        <i class="fa-solid fa-layer-group text-lg" aria-hidden="true"></i>
+        Deck
+      </a>
+      <a href="/profile"
+        class="flex flex-col items-center justify-center gap-1 rounded-2xl text-sm font-bold text-slate-500">
+        <i class="fa-solid fa-chart-simple text-lg" aria-hidden="true"></i>
+        Profil
+      </a>
+    </div>
+  </nav>
+
+  <div id="toast" hidden role="status" aria-live="polite"
+    class="fixed inset-x-4 top-4 z-[120] mx-auto max-w-md rounded-2xl border border-sky-200 bg-white p-4 shadow-lg">
+  </div>
+
+  <script>
+    "use strict";
+
+    const PATH = Object.freeze({
+      home: "/",
+      signin: "/signin",
+      admin: "/admin",
+      game: "/game-mode",
+      profile: "/profile",
+      api: "/api"
+    });
+
+    const STORE_KEY = "bunpou.progress.v1";
+    const $ = selector => document.querySelector(selector);
+
+    const esc = value => String(value ?? "").replace(
+      /[&<>"']/g,
+      c => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+      })[c]
+    );
+
+    const PRIMARY =
+      "inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-sky-700 px-5 py-3 font-extrabold text-white transition hover:bg-sky-800 disabled:opacity-50";
+
+    const SECONDARY =
+      "inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-sky-200 bg-white px-4 py-3 font-bold text-sky-800";
+
+    let toastTimer;
+
+    function toast(message) {
+      clearTimeout(toastTimer);
+      $("#toast").textContent = message;
+      $("#toast").hidden = false;
+      toastTimer = setTimeout(() => {
+        $("#toast").hidden = true;
+      }, 5500);
+    }
+
+    async function api(url, options = {}) {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 18000);
+
+      try {
+        const response = await fetch(PATH.api + url, {
+          credentials: "same-origin",
+          ...options,
+          headers: {
+            "Content-Type": "application/json",
+            ...options.headers
+          },
+          signal: controller.signal
+        });
+
+        const data = await response.json().catch(() => ({
+          message: "Respons server tidak valid."
+        }));
+
+        if (!response.ok) {
+          const error = new Error(data.message || "Permintaan gagal.");
+          error.status = response.status;
+          throw error;
+        }
+
+        return data;
+      } catch (error) {
+        if (error.name === "AbortError") {
+          throw new Error("Koneksi lambat. Silakan coba lagi.");
+        }
+        throw error;
+      } finally {
+        clearTimeout(timeout);
+      }
+    }
+
+    function post(url, data, options = {}) {
+      return api(url, {
+        ...options,
+        method: "POST",
+        body: JSON.stringify(data)
+      });
+    }
+
+    function readProgress() {
+      try {
+        const raw = localStorage.getItem(STORE_KEY);
+
+        if (!raw) {
+          return { version: 1, sessions: [], resetId: "initial" };
+        }
+
+        const data = JSON.parse(raw);
+
+        if (
+          data.version !== 1 ||
+          !Array.isArray(data.sessions) ||
+          data.sessions.some(s =>
+            !s ||
+            typeof s.id !== "string" ||
+            !Array.isArray(s.results)
+          )
+        ) {
+          throw new Error("Format progres tidak valid.");
+        }
+
+        return data;
+      } catch {
+        toast("Progres tidak dapat dibaca. Data lama tidak ditimpa.");
+        return null;
+      }
+    }
+
+    function clearGameStorage() {
+      try {
+        const keys = [];
+
+        for (let i = 0; i < sessionStorage.length; i++) {
+          const key = sessionStorage.key(i);
+
+          if (
+            key?.startsWith("bunpou.active.") ||
+            key?.startsWith("bunpou.board.")
+          ) {
+            keys.push(key);
+          }
+        }
+
+        keys.forEach(key => sessionStorage.removeItem(key));
+      } catch {}
+    }
+
+    const deckId = new URLSearchParams(location.search).get("deck");
+    const ACTIVE_KEY = "bunpou.active." + deckId;
+    const EPOCH_KEY = ACTIVE_KEY + ".epoch";
+
+    let progressEpoch = readProgress()?.resetId || "initial";
+    let token = null;
+    let state = null;
+    let timer = null;
+    let deadlineMono = 0;
+    let sortables = [];
+    let pending = null;
+
+    let submitting = false;
+    let nextBusy = false;
+    let loading = false;
+    let stopped = false;
+    let draggedAt = -Infinity;
+
+    function clearBoardUI() {
+      clearInterval(timer);
+      timer = null;
+
+      sortables.forEach(sortable => sortable.destroy());
+      sortables = [];
+    }
+
+    function stopAfterReset() {
+      if (stopped) return;
+
+      stopped = true;
+      clearBoardUI();
+      clearGameStorage();
+
+      $("#game").innerHTML = `
+        <section class="rounded-3xl border border-sky-100 bg-white p-6 text-center">
+          <i class="fa-solid fa-arrow-rotate-left text-3xl text-sky-600"
+            aria-hidden="true"></i>
+          <h1 class="mt-4 text-xl font-black">Progres sudah direset</h1>
+          <p class="mt-2 text-slate-500">
+            Mulai permainan baru untuk mencatat progres dari awal.
+          </p>
+          <a href="${PATH.home}" class="${PRIMARY} mt-5">Pilih deck</a>
+        </section>
+      `;
+    }
+
+    function checkProgressEpoch() {
+      if (stopped) return false;
+
+      const data = readProgress();
+
+      // Penyimpanan diblokir: permainan tetap boleh berjalan,
+      // tetapi hasil tidak dianggap berhasil tersimpan.
+      if (!data) return true;
+
+      if ((data.resetId || "initial") !== progressEpoch) {
+        stopAfterReset();
+        return false;
+      }
+
+      return true;
+    }
+
+    window.addEventListener("storage", event => {
+      if (event.key === STORE_KEY || event.key === null) {
+        checkProgressEpoch();
+      }
+    });
+
+    window.addEventListener("pageshow", checkProgressEpoch);
+
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden) checkProgressEpoch();
+    });
+
+    function saveSummary(summary) {
+      const data = readProgress();
+      if (!data) return false;
+
+      if ((data.resetId || "initial") !== progressEpoch) {
+        stopAfterReset();
+        return false;
+      }
+
+      if (data.sessions.some(s => s.id === summary.id)) {
+        return true;
+      }
+
+      try {
+        localStorage.setItem(STORE_KEY, JSON.stringify({
+          ...data,
+          sessions: [...data.sessions, summary]
+        }));
+
+        return true;
+      } catch {
+        toast("Hasil belum tersimpan. Penyimpanan browser penuh atau diblokir.");
+        return false;
+      }
+    }
+
+    function metric(label, value) {
+      return `
+        <div class="rounded-2xl border border-sky-100 bg-white p-3 sm:p-4">
+          <p class="text-sm font-bold text-slate-500">${esc(label)}</p>
+          <p class="mt-1 text-2xl font-black text-slate-800">${esc(value)}</p>
+        </div>
+      `;
+    }
+
+    function resultDetail(result, index) {
+      const status = result.timedOut
+        ? "Waktu habis"
+        : result.correct ? "Benar" : "Belum tepat";
+
+      return `
+        <details class="rounded-2xl border ${
+          result.correct ? "border-emerald-200" : "border-rose-200"
+        } bg-white p-4">
+          <summary class="flex min-h-11 flex-wrap items-center justify-between gap-2">
+            <span class="font-extrabold">
+              Soal ${index + 1}
+              <span class="${
+                result.correct ? "text-emerald-700" : "text-rose-700"
+              }">· ${status}</span>
+            </span>
+            <span class="text-sm font-bold text-slate-500">
+              ${esc(result.timeSeconds)} dtk · +${esc(result.xp)} EXP
+              <i class="fa-solid fa-chevron-down ml-1" aria-hidden="true"></i>
+            </span>
+          </summary>
+
+          <div class="mt-3 space-y-4 border-t border-slate-100 pt-4">
+            <div>
+              <p class="text-sm font-bold text-slate-500">Jawabanmu</p>
+              <p class="jp mt-1 leading-loose">
+                ${esc(result.actual.join(" / ") || "Belum ada potongan")}
+              </p>
+            </div>
+
+            <div class="rounded-xl bg-emerald-50 p-3">
+              <p class="text-sm font-bold text-emerald-800">Susunan benar</p>
+              <p class="jp mt-1 leading-loose">
+                ${esc(result.expected.join(""))}
+              </p>
+            </div>
+
+            ${result.clue ? `
+              <p class="break-words text-sm text-slate-500">
+                Clue: ${esc(result.clue)}
+              </p>
+            ` : ""}
+
+            <p class="text-sm font-bold">
+              ${esc(result.mismatches)} potongan salah posisi / belum terisi
+            </p>
+
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-sm">
+                <thead>
+                  <tr class="border-b border-slate-100 text-slate-500">
+                    <th class="p-2">Posisi</th>
+                    <th class="p-2">Jawabanmu</th>
+                    <th class="p-2">Seharusnya</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${result.positions.map(position => `
+                    <tr class="${position.match ? "bg-emerald-50" : "bg-rose-50"}">
+                      <td class="p-2">
+                        ${esc(position.position)}
+                        ${position.match ? "✓" : "×"}
+                      </td>
+                      <td class="jp p-2">${esc(position.actual ?? "—")}</td>
+                      <td class="jp p-2">${esc(position.expected)}</td>
+                    </tr>
+                  `).join("")}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </details>
+      `;
+    }
+
+    function summaryHTML(summary) {
+      return `
+        <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          ${metric("Akurasi", summary.accuracy + "%")}
+          ${metric("EXP", "+" + summary.totalXp)}
+          ${metric("Benar", summary.correct + "/" + summary.total)}
+          ${metric("Salah", summary.incorrect)}
+        </div>
+
+        <div class="mt-4 grid grid-cols-2 gap-3 rounded-2xl bg-white p-4 text-sm">
+          <p>Waktu habis: <b>${esc(summary.timedOut)}</b></p>
+          <p>Salah posisi: <b>${esc(summary.mismatches)}</b></p>
+          <p>Total waktu: <b>${esc(summary.totalSeconds)} dtk</b></p>
+          <p>
+            Rata-rata:
+            <b>${(summary.totalSeconds / Math.max(1, summary.total)).toFixed(1)} dtk</b>
+          </p>
+          <p class="col-span-2">
+            Rangkaian benar terpanjang:
+            <b>${esc(summary.bestStreak)}</b>
+          </p>
+        </div>
+
+        <h2 class="mb-3 mt-6 text-lg font-black">Lihat kembali jawabanmu</h2>
+        <div class="space-y-3">
+          ${summary.results.map(resultDetail).join("")}
+        </div>
+      `;
+    }
+
+    let soundEnabled = true;
+    let audioContext = null;
+
+    try {
+      soundEnabled = localStorage.getItem("bunpou.sound") !== "off";
+    } catch {}
+
+    function unlockAudio() {
+      try {
+        audioContext ||= new (
+          window.AudioContext || window.webkitAudioContext
+        )();
+
+        if (audioContext.state === "suspended") {
+          audioContext.resume().catch(() => {});
+        }
+      } catch {}
+    }
+
+    document.addEventListener("pointerdown", unlockAudio, { once: true });
+    document.addEventListener("keydown", unlockAudio, { once: true });
+
+    function playSound(correct) {
+      if (!soundEnabled) return;
+
+      unlockAudio();
+
+      if (!audioContext || audioContext.state !== "running") return;
+
+      const start = audioContext.currentTime;
+      const frequencies = correct ? [523.25, 659.25, 783.99] : [280, 210];
+
+      frequencies.forEach((frequency, index) => {
+        const oscillator = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+        const time = start + index * .1;
+
+        oscillator.type = "sine";
+        oscillator.frequency.value = frequency;
+
+        gain.gain.setValueAtTime(0, time);
+        gain.gain.linearRampToValueAtTime(.1, time + .01);
+        gain.gain.exponentialRampToValueAtTime(.001, time + .18);
+
+        oscillator.connect(gain);
+        gain.connect(audioContext.destination);
+
+        oscillator.start(time);
+        oscillator.stop(time + .2);
+      });
+    }
+
+    function gameApi(url, data) {
+      const options = { headers: { "x-game-token": token } };
+
+      return data === undefined
+        ? api(url, options)
+        : post(url, data, options);
+    }
+
+    function storeActive() {
+      try {
+        sessionStorage.setItem(ACTIVE_KEY, token);
+        sessionStorage.setItem(EPOCH_KEY, progressEpoch);
+      } catch {
+        toast("Penyimpanan sesi diblokir. Hindari refresh saat bermain.");
+      }
+    }
+
+    function boardKey() {
+      return "bunpou.board." + token + "." + state.index;
+    }
+
+    function answerIds() {
+      return [...$("#answer").querySelectorAll(":scope > .tile")]
+        .map(tile => tile.dataset.id);
+    }
+
+    function saveBoard() {
+      try {
+        sessionStorage.setItem(boardKey(), JSON.stringify(answerIds()));
+      } catch {}
+    }
+
+    function render(data) {
+      if (!checkProgressEpoch()) return;
+
+      clearBoardUI();
+      pending = null;
+      state = data;
+
+      if (state.phase === "done") {
+        renderDone(state.summary);
+      } else if (state.phase === "feedback") {
+        renderFeedback(state.result);
+      } else {
+        renderQuestion();
+      }
+    }
+
+    function gameHeader() {
+      return `
+        <header class="mb-4">
+          <div class="flex items-center gap-3">
+            <a href="${PATH.home}"
+              class="grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-sky-200 bg-white"
+              aria-label="Kembali ke deck">
+              <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
+            </a>
+
+            <div class="min-w-0 flex-1">
+              <p class="text-sm font-bold text-sky-700">
+                Soal ${state.index + 1} / ${state.total}
+              </p>
+              <h1 class="truncate text-lg font-black text-slate-800">
+                ${esc(state.deck.title)}
+              </h1>
+            </div>
+
+            <button id="sound"
+              class="grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-sky-200 bg-white text-sky-800">
+            </button>
+          </div>
+
+          <div class="mb-2 mt-4 flex justify-between text-sm font-bold">
+            <span class="text-emerald-700">${state.correct} benar</span>
+            <span class="text-sky-800">
+              <i class="fa-solid fa-star text-amber-500" aria-hidden="true"></i>
+              ${state.xp} EXP
+            </span>
+          </div>
+
+          <div class="h-2 overflow-hidden rounded-full bg-sky-200"
+            role="progressbar"
+            aria-label="Progres deck"
+            aria-valuemin="0"
+            aria-valuemax="${state.total}"
+            aria-valuenow="${state.index}">
+            <div class="h-full rounded-full bg-sky-600"
+              style="width:${state.index / state.total * 100}%"></div>
+          </div>
+        </header>
+      `;
+    }
+
+    function bindSound() {
+      const button = $("#sound");
+
+      function update() {
+        button.setAttribute("aria-pressed", String(soundEnabled));
+        button.setAttribute(
+          "aria-label",
+          soundEnabled ? "Matikan suara" : "Aktifkan suara"
+        );
+
+        button.innerHTML = `
+          <i class="fa-solid fa-${
+            soundEnabled ? "volume-high" : "volume-xmark"
+          }" aria-hidden="true"></i>
+        `;
+      }
+
+      button.onclick = () => {
+        soundEnabled = !soundEnabled;
+
+        try {
+          localStorage.setItem("bunpou.sound", soundEnabled ? "on" : "off");
+        } catch {}
+
+        update();
+        if (soundEnabled) playSound(true);
+      };
+
+      update();
+    }
+
+    const PALETTE = [
+      ["#dff1ff", "#a2cce8", "#265573"],
+      ["#ffe5ed", "#e9b2c5", "#79445a"],
+      ["#e7e3ff", "#beb5e9", "#514b79"],
+      ["#dff5e9", "#a7d4ba", "#35624b"],
+      ["#fff1cf", "#e2cc91", "#735d29"],
+      ["#ffe8d9", "#e6bfa3", "#805638"]
+    ];
+
+    function createTile(item, colorIndex) {
+      const button = document.createElement("button");
+      const colors = PALETTE[colorIndex % PALETTE.length];
+
+      button.type = "button";
+      button.className = "tile";
+      button.dataset.id = item.id;
+
+      button.style.setProperty("--tile-bg", colors[0]);
+      button.style.setProperty("--tile-border", colors[1]);
+      button.style.setProperty("--tile-text", colors[2]);
+
+      const number = document.createElement("span");
+      number.className = "tile-number";
+      number.setAttribute("aria-hidden", "true");
+
+      const text = document.createElement("span");
+      text.className = "tile-text";
+      text.textContent = item.text;
+
+      button.append(number, text);
+      return button;
+    }
+
+    function updateBoard() {
+      if (!$("#answer")) return;
+
+      const answerTiles = [...$("#answer").querySelectorAll(":scope > .tile")];
+      const bankTiles = [...$("#bank").querySelectorAll(":scope > .tile")];
+
+      answerTiles.forEach((tile, index) => {
+        tile.querySelector(".tile-number").textContent = index + 1;
+        tile.setAttribute(
+          "aria-label",
+          `Posisi ${index + 1}: ${tile.querySelector(".tile-text").textContent}. Ketuk untuk mengembalikan.`
+        );
+      });
+
+      bankTiles.forEach(tile => {
+        tile.querySelector(".tile-number").textContent = "•";
+        tile.setAttribute(
+          "aria-label",
+          tile.querySelector(".tile-text").textContent + ". Ketuk untuk menambahkan."
+        );
+      });
+
+      const count = answerTiles.length;
+
+      $("#tile-count").textContent = count + "/" + state.question.tokens.length;
+
+      $("#check").disabled =
+        submitting ||
+        !!pending ||
+        count !== state.question.tokens.length;
+
+      saveBoard();
+    }
+
+    function renderQuestion() {
+      $("#game").innerHTML = gameHeader() + `
+        <section class="rounded-[26px] border border-sky-100 bg-white p-4 shadow-sm sm:p-6">
+          <div class="flex items-center justify-between gap-3">
+            <h2 class="text-xl font-black text-slate-800">Susun bloknya!</h2>
+
+            <span id="clock" role="timer" aria-label="Sisa waktu"
+              class="shrink-0 rounded-full bg-sky-100 px-3 py-2 text-sm font-extrabold tabular-nums text-sky-800">
+            </span>
+          </div>
+
+          <p class="mt-2 text-sm leading-relaxed text-slate-500">
+            Ketuk atau geser blok. Susun dari kiri ke kanan.
+          </p>
+
+          ${state.question.clue ? `
+            <div class="mt-3 rounded-2xl bg-amber-50 px-3 py-3">
+              <p class="text-sm font-extrabold text-amber-800">
+                <i class="fa-regular fa-lightbulb mr-1" aria-hidden="true"></i>
+                Clue
+              </p>
+              <p class="mt-1 break-words leading-relaxed">
+                ${esc(state.question.clue)}
+              </p>
+            </div>
+          ` : ""}
+
+          <div class="mb-2 mt-5 flex items-center justify-between">
+            <h3 class="text-sm font-extrabold text-sky-800">
+              Jawabanmu
+              <i class="fa-solid fa-arrow-right ml-1" aria-hidden="true"></i>
+            </h3>
+
+            <span id="tile-count"
+              class="rounded-full bg-sky-50 px-2 py-1 text-sm font-bold text-sky-800">
+            </span>
+          </div>
+
+          <div id="answer"
+            class="puzzle-board answer-board"
+            aria-label="Susunan jawaban dari kiri ke kanan"
+            data-placeholder="Ketuk blok di bawah atau geser ke sini">
+          </div>
+
+          <p class="mt-2 text-sm text-slate-500">
+            Baris penuh? Lanjut ke baris berikutnya.
+          </p>
+
+          <div class="mb-2 mt-5 flex items-center justify-between">
+            <h3 class="text-sm font-extrabold">Pilihan blok</h3>
+            <span class="text-sm text-slate-400">Ketuk · Geser</span>
+          </div>
+
+          <div id="bank"
+            class="puzzle-board bank-board"
+            aria-label="Pilihan blok kata"
+            data-placeholder="Semua blok sudah masuk ke jawaban">
+          </div>
+
+          <div id="request-error" hidden role="alert"
+            class="mt-4 rounded-2xl bg-rose-50 p-4 text-rose-800">
+            <p id="request-error-text"></p>
+            <button id="retry-answer" class="${SECONDARY} mt-3 w-full">
+              Kirim ulang jawaban
+            </button>
+          </div>
+        </section>
+
+        <p class="mt-4 text-center text-sm text-slate-500">
+          Benar +20 EXP · Bonus cepat hingga +10 EXP
+        </p>
+
+        <div class="action-dock">
+          <div class="mx-auto max-w-2xl px-3 pb-2 sm:px-5">
+            <div class="flex gap-2 rounded-3xl border border-sky-100 bg-white/95 p-2 shadow-lg backdrop-blur">
+              <button id="reset-board" class="${SECONDARY} shrink-0"
+                aria-label="Kembalikan semua blok">
+                <i class="fa-solid fa-rotate-left" aria-hidden="true"></i>
+              </button>
+
+              <button id="check" class="${PRIMARY} min-w-0 flex-1" disabled>
+                Periksa jawaban
+                <i class="fa-solid fa-check" aria-hidden="true"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+
+      bindSound();
+
+      const items = state.question.tokens;
+      const byId = new Map(items.map((item, index) => [
+        item.id,
+        { item, colorIndex: index }
+      ]));
+
+      let saved = [];
+
+      try {
+        const raw = JSON.parse(sessionStorage.getItem(boardKey()) || "[]");
+        if (Array.isArray(raw)) saved = raw;
+      } catch {}
+
+      saved = [...new Set(saved)].filter(id => byId.has(id));
+
+      for (const id of saved) {
+        const entry = byId.get(id);
+        $("#answer").append(createTile(entry.item, entry.colorIndex));
+      }
+
+      items.forEach((item, index) => {
+        if (!saved.includes(item.id)) {
+          $("#bank").append(createTile(item, index));
+        }
+      });
+
+      for (const selector of ["#answer", "#bank"]) {
+        const board = $(selector);
+
+        board.addEventListener("click", event => {
+          const tile = event.target.closest(".tile");
+
+          if (
+            !tile ||
+            submitting ||
+            pending ||
+            stopped ||
+            performance.now() - draggedAt < 250
+          ) return;
+
+          unlockAudio();
+
+          const destination = tile.parentElement.id === "bank"
+            ? $("#answer")
+            : $("#bank");
+
+          destination.append(tile);
+          updateBoard();
+        });
+
+        board.addEventListener("keydown", event => {
+          const tile = event.target.closest(".tile");
+
+          if (
+            !tile ||
+            submitting ||
+            pending ||
+            stopped ||
+            tile.parentElement.id !== "answer"
+          ) return;
+
+          if (event.key === "ArrowLeft" && tile.previousElementSibling) {
+            event.preventDefault();
+            tile.previousElementSibling.before(tile);
+          } else if (event.key === "ArrowRight" && tile.nextElementSibling) {
+            event.preventDefault();
+            tile.nextElementSibling.after(tile);
+          } else {
+            return;
+          }
+
+          tile.focus();
+          updateBoard();
+        });
+
+        if (window.Sortable) {
+          sortables.push(new Sortable(board, {
+            group: "bunpou-puzzle",
+            draggable: ".tile",
+            animation: matchMedia("(prefers-reduced-motion: reduce)").matches
+              ? 0
+              : 160,
+
+            ghostClass: "sortable-ghost",
+            chosenClass: "sortable-chosen",
+            dragClass: "sortable-drag",
+
+            forceFallback: true,
+            fallbackOnBody: true,
+            fallbackTolerance: 4,
+            touchStartThreshold: 4,
+
+            delay: 90,
+            delayOnTouchOnly: true,
+
+            emptyInsertThreshold: 26,
+            swapThreshold: .65,
+
+            scroll: true,
+            scrollSensitivity: 60,
+            scrollSpeed: 8,
+            bubbleScroll: true,
+
+            // Horizontal pada baris sama, vertikal saat pindah baris.
+            direction(event, target, dragged) {
+              if (!target || !dragged) return "horizontal";
+
+              const a = dragged.getBoundingClientRect();
+              const b = target.getBoundingClientRect();
+
+              const overlap =
+                Math.min(a.bottom, b.bottom) -
+                Math.max(a.top, b.top);
+
+              return overlap > Math.min(a.height, b.height) * .45
+                ? "horizontal"
+                : "vertical";
+            },
+
+            onStart() {
+              draggedAt = Infinity;
+              unlockAudio();
+            },
+
+            onEnd() {
+              draggedAt = performance.now();
+              updateBoard();
+            }
+          }));
+        }
+      }
+
+      if (!window.Sortable) {
+        toast("Drag belum tersedia. Kamu tetap bisa mengetuk blok.");
+      }
+
+      $("#reset-board").onclick = () => {
+        if (submitting || pending || stopped) return;
+
+        [...$("#answer").querySelectorAll(":scope > .tile")]
+          .forEach(tile => $("#bank").append(tile));
+
+        updateBoard();
+      };
+
+      $("#check").onclick = submitAnswer;
+      $("#retry-answer").onclick = submitAnswer;
+
+      updateBoard();
+
+      deadlineMono = performance.now() +
+        Math.max(0, state.deadline - state.serverNow);
+
+      timer = setInterval(tick, 150);
+      tick();
+    }
+
+    function freezeBoard() {
+      sortables.forEach(sortable => sortable.option("disabled", true));
+
+      document.querySelectorAll(".tile, #check, #reset-board")
+        .forEach(button => button.disabled = true);
+    }
+
+    function tick() {
+      if (
+        stopped ||
+        state?.phase !== "question" ||
+        submitting ||
+        pending
+      ) return;
+
+      const remaining = Math.max(
+        0,
+        Math.ceil((deadlineMono - performance.now()) / 1000)
+      );
+
+      $("#clock").textContent = remaining + " dtk";
+
+      if (remaining <= 10) {
+        $("#clock").className =
+          "shrink-0 rounded-full bg-rose-100 px-3 py-2 text-sm font-extrabold tabular-nums text-rose-800";
+      }
+
+      if (remaining === 0) submitAnswer();
+    }
+
+    async function submitAnswer() {
+      if (
+        submitting ||
+        stopped ||
+        state?.phase !== "question" ||
+        !checkProgressEpoch()
+      ) return;
+
+      submitting = true;
+      clearInterval(timer);
+
+      pending ||= {
+        index: state.index,
+        tokenIds: answerIds()
+      };
+
+      freezeBoard();
+      $("#request-error").hidden = true;
+      $("#check").textContent = "Memeriksa…";
+
+      try {
+        const data = await gameApi("/games/answer", pending);
+
+        if (!checkProgressEpoch()) return;
+
+        try {
+          sessionStorage.removeItem(boardKey());
+        } catch {}
+
+        playSound(data.result.correct);
+        render(data.state);
+      } catch (error) {
+        if (stopped) return;
+
+        $("#request-error-text").textContent = error.message;
+        $("#request-error").hidden = false;
+        $("#check").textContent = "Belum terkonfirmasi";
+      } finally {
+        submitting = false;
+      }
+    }
+
+    function renderFeedback(result) {
+      $("#game").innerHTML = gameHeader() + `
+        <section class="pop rounded-3xl border ${
+          result.correct
+            ? "border-emerald-200 bg-emerald-50"
+            : "border-rose-200 bg-rose-50"
+        } p-5 text-center">
+          <span class="mx-auto grid h-16 w-16 place-items-center rounded-3xl bg-white text-3xl ${
+            result.correct ? "text-emerald-700" : "text-rose-700"
+          }">
+            <i class="fa-solid fa-${
+              result.correct ? "check" : result.timedOut ? "hourglass-end" : "rotate-left"
+            }" aria-hidden="true"></i>
+          </span>
+
+          <h2 class="mt-4 text-2xl font-black">
+            ${
+              result.correct
+                ? "Pas! Susunannya benar."
+                : result.timedOut
+                  ? "Waktunya habis."
+                  : "Yuk, cek susunannya!"
+            }
+          </h2>
+
+          <p class="mt-2 text-slate-600">
+            ${
+              result.correct
+                ? `Kamu mendapat +${result.xp} EXP.`
+                : result.timedOut
+                  ? "Jawaban diterima setelah batas waktu."
+                  : `${result.mismatches} blok belum tepat posisinya.`
+            }
+          </p>
+
+          <p class="jp mt-4 rounded-2xl bg-white p-4 text-xl leading-loose">
+            ${esc(result.expected.join(""))}
+          </p>
+        </section>
+
+        <div class="mt-4">${resultDetail(result, state.index)}</div>
+
+        <button id="next-question" class="${PRIMARY} mt-5 w-full">
+          ${state.index === state.total - 1 ? "Lihat hasil deck" : "Soal berikutnya"}
+          <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+        </button>
+
+        <p id="next-error" role="alert" class="mt-3 text-rose-700"></p>
+      `;
+
+      bindSound();
+
+      $("#next-question").onclick = async () => {
+        if (nextBusy || !checkProgressEpoch()) return;
+
+        nextBusy = true;
+        $("#next-question").disabled = true;
+
+        try {
+          render(await gameApi("/games/next", { index: state.index }));
+        } catch (error) {
+          if (!stopped) {
+            $("#next-error").textContent = error.message;
+            $("#next-question").disabled = false;
+          }
+        } finally {
+          nextBusy = false;
+        }
+      };
+    }
+
+    function renderDone(summary) {
+      const saved = saveSummary(summary);
+      if (stopped) return;
+
+      if (saved) {
+        try {
+          sessionStorage.removeItem(ACTIVE_KEY);
+          sessionStorage.removeItem(EPOCH_KEY);
+        } catch {}
+      }
+
+      $("#game").innerHTML = `
+        <section class="mb-5 rounded-3xl border border-sky-200 bg-sky-100 p-6 text-center">
+          <i class="fa-solid fa-trophy text-4xl text-amber-500"
+            aria-hidden="true"></i>
+
+          <h1 class="mt-4 text-2xl font-black text-slate-800">Deck selesai!</h1>
+          <p class="mt-2 break-words">${esc(summary.deckTitle)}</p>
+
+          <p class="mt-3 text-sm font-bold ${
+            saved ? "text-emerald-800" : "text-rose-800"
+          }">
+            ${
+              saved
+                ? "✓ Progres tersimpan di perangkat ini."
+                : "Hasil belum tersimpan. Jangan tutup halaman ini."
+            }
+          </p>
+
+          ${saved ? "" : `
+            <button id="retry-save" class="${SECONDARY} mt-3">
+              Coba simpan lagi
+            </button>
+          `}
+        </section>
+
+        ${summaryHTML(summary)}
+
+        <div class="mt-6 grid grid-cols-2 gap-3">
+          <a href="${PATH.home}" class="${SECONDARY}">Pilih deck</a>
+          <a href="${PATH.profile}" class="${PRIMARY}">Lihat profil</a>
+        </div>
+
+        <button id="replay" class="${SECONDARY} mt-3 w-full">
+          Mainkan lagi
+        </button>
+      `;
+
+      if ($("#retry-save")) {
+        $("#retry-save").onclick = () => {
+          if (checkProgressEpoch()) renderDone(summary);
+        };
+      }
+
+      $("#replay").onclick = async () => {
+        if (loading || !checkProgressEpoch()) return;
+
+        loading = true;
+        $("#replay").disabled = true;
+
+        try {
+          const data = await post("/games", { deckId: summary.deckId });
+
+          if (!checkProgressEpoch()) return;
+
+          token = data.token;
+          storeActive();
+          render(data);
+        } catch (error) {
+          if (!stopped) {
+            toast(error.message);
+            $("#replay").disabled = false;
+          }
+        } finally {
+          loading = false;
+        }
+      };
+    }
+
+    async function boot() {
+      if (loading || stopped) return;
+
+      if (!deckId || !/^[0-9a-f-]{36}$/i.test(deckId)) {
+        $("#game").innerHTML = `
+          <section class="rounded-3xl bg-white p-6 text-center">
+            <h1 class="text-xl font-black">Pilih deck dahulu</h1>
+            <a href="${PATH.home}" class="${PRIMARY} mt-5">Buka daftar deck</a>
+          </section>
+        `;
+        return;
+      }
+
+      loading = true;
+
+      try {
+        if (!checkProgressEpoch()) return;
+
+        try {
+          token = sessionStorage.getItem(ACTIVE_KEY);
+          const savedEpoch = sessionStorage.getItem(EPOCH_KEY) || "initial";
+
+          if (token && savedEpoch !== progressEpoch) {
+            clearGameStorage();
+            token = null;
+          }
+        } catch {}
+
+        if (token) {
+          try {
+            render(await gameApi("/games/current"));
+            return;
+          } catch (error) {
+            if (error.status !== 401 && error.status !== 410) throw error;
+
+            try {
+              sessionStorage.removeItem(ACTIVE_KEY);
+              sessionStorage.removeItem(EPOCH_KEY);
+            } catch {}
+
+            token = null;
+          }
+        }
+
+        const data = await post("/games", { deckId });
+
+        if (!checkProgressEpoch()) return;
+
+        token = data.token;
+        storeActive();
+        render(data);
+      } catch (error) {
+        if (stopped) return;
+
+        $("#game").innerHTML = `
+          <section class="rounded-3xl border border-rose-100 bg-white p-6">
+            <h1 class="text-xl font-black">Permainan belum bisa dibuka</h1>
+            <p class="mt-3">${esc(error.message)}</p>
+
+            <div class="mt-5 flex gap-3">
+              <a href="${PATH.home}" class="${SECONDARY}">Pilih deck</a>
+              <button id="retry-boot" class="${PRIMARY}">Coba lagi</button>
+            </div>
+          </section>
+        `;
+
+        $("#retry-boot").onclick = boot;
+      } finally {
+        loading = false;
+      }
+    }
+
+    boot();
+  </script>
+</body>
+</html>
